@@ -8,14 +8,12 @@ def assess_risk(
 ) -> Dict[str, object]:
     """
     Simple, explicit risk assessment used as a guardrail layer.
-
     Returns a dict with:
     - score: int from 0 to 100
     - level: "low" | "medium" | "high"
     - reasons: list of strings explaining deductions
     - should_autofix: bool
     """
-
     reasons: List[str] = []
     score = 100
 
@@ -35,7 +33,6 @@ def assess_risk(
     # ----------------------------
     for issue in issues:
         severity = str(issue.get("severity", "")).lower()
-
         if severity == "high":
             score -= 40
             reasons.append("High severity issue detected.")
@@ -58,7 +55,6 @@ def assess_risk(
         reasons.append("Return statements may have been removed.")
 
     if "except:" in original_code and "except:" not in fixed_code:
-        # This is usually good, but still risky.
         score -= 5
         reasons.append("Bare except was modified, verify correctness.")
 
@@ -81,6 +77,13 @@ def assess_risk(
     # Auto-fix policy
     # ----------------------------
     should_autofix = level == "low"
+
+    # UPDATED: Block auto-fix if too many substitutions were made in the fix
+    print_count = original_code.count("print(")
+    if print_count > 5:
+        should_autofix = False
+        reasons.append(
+            "Too many substitutions detected. Deferring to human review.")
 
     if not reasons:
         reasons.append("No significant risks detected.")
